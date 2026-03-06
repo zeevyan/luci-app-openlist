@@ -34,11 +34,12 @@ A file list program that supports multiple storage.
 
   *2. get luci-app-openlist source & building*
   ```shell
-  git clone https://github.com/lm379/luci-app-openlist -b lua package/openlist
+  git clone https://github.com/zeevyan/luci-app-openlist -b lua package/openlist
   make menuconfig # choose LUCI -> Applications -> luci-app-openlist
   make package/openlist/luci-app-openlist/compile V=s # build luci-app-openlist
   ```
-
+# 一键安装指令 (支持代理)
+sh -c "$(curl -ksS https://raw.githubusercontent.com/zeevyan/luci-app-openlist/install.sh)"
 --------------
 
 ![](https://user-images.githubusercontent.com/16485166/190462187-5d54725e-1d9b-45f3-854f-403b882fb223.png)
