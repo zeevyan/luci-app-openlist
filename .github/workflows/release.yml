@@ -49,6 +49,17 @@ jobs:
         with:
           fetch-depth: 0
 
+      # 新增：静态链接与去除调试信息优化 (-w -s 减小体积)
+      - name: Build with Static Linking
+        run: |
+          sed -i '/golang-package/a \\tGO_PKG_DEFAULT_LDFLAGS:=-w -s -extldflags "-static"' openlist/Makefile
+
+      # 新增：UPX 压缩优化 (排除不兼容的 mips64 架构)
+      - name: UPX Compress
+        if: ${{ matrix.arch != 'mips64_octeonplus' }}
+        run: |
+          sed -i '/openlist.init/a \\t/usr/bin/upx --lzma --best $(1)\/usr\/bin\/openlist' openlist/Makefile
+
       - name: Build
         uses: sbwml/openwrt-gh-action-sdk@go1.24
         env:
@@ -64,8 +75,10 @@ jobs:
           path: bin/packages/${{ matrix.arch }}/packages_ci/*.ipk
 
       - name: Create compress files
+        continue-on-error: true
         run: |
           tar -zcvf ${{ matrix.sdk }}-${{ matrix.arch }}.tar.gz -C bin/packages/${{ matrix.arch }}/ packages_ci
+          
       - name: Upload packages
         uses: ncipollo/release-action@v1
         with:
