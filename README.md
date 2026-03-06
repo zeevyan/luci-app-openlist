@@ -44,6 +44,4 @@ A file list program that supports multiple storage.
 sh -c "$(curl -ksS https://raw.githubusercontent.com/zeevyan/luci-app-openlist/main/install.sh)"
 
 
---------------
 
-![](https://user-images.githubusercontent.com/16485166/190462187-5d54725e-1d9b-45f3-854f-403b882fb223.png)
