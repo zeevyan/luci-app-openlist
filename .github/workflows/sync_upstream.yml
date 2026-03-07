@@ -3,7 +3,7 @@ name: Sync Upstream Release Hash
 on:
   schedule:
     - cron: '0 */4 * * *'  # 每4小时自动运行一次
-  workflow_dispatch:       # 新增：允许在 GitHub 网页上手动点击运行，方便测试
+  workflow_dispatch:       # 允许在 GitHub 网页上手动点击运行
 
 jobs:
   update_makefile:
@@ -20,11 +20,28 @@ jobs:
       - name: Fetch Upstream Release Version
         id: get_release_OpenList
         run: |
-          # 通过 API 获取最新 Release 的 Tag 名称
+          # 通过 API 获取最新 Release 的 Tag 名称 (加入 Token 避免被 GitHub API 限制)
           API_URL="https://api.github.com/repos/OpenListTeam/OpenList/releases/latest"
           API_URL_FRONTEND="https://api.github.com/repos/OpenListTeam/OpenList-Frontend/releases/latest"
-          TAG_NAME=$(curl -s $API_URL | jq -r '.tag_name')
-          FRONTEND_TAG_NAME=$(curl -s $API_URL_FRONTEND | jq -r '.tag_name')
+          
+          # 增加 Authorization 请求头
+          TAG_NAME=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" $API_URL | jq -r '.tag_name')
+          FRONTEND_TAG_NAME=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" $API_URL_FRONTEND | jq -r '.tag_name')
+          
+          # 安全检查：如果拿到的是 null 或者空值，直接报错退出，防止后续下载 404
+          if [ "$TAG_NAME" = "null" ] || [ -z "$TAG_NAME" ]; then
+            echo "❌ 错误: 无法获取主程序版本号，可能是上游仓库地址有误或 API 仍然受限。"
+            exit 1
+          fi
+          
+          if [ "$FRONTEND_TAG_NAME" = "null" ] || [ -z "$FRONTEND_TAG_NAME" ]; then
+            echo "❌ 错误: 无法获取前端版本号。"
+            exit 1
+          fi
+
+          echo "✅ 获取到的主程序版本: $TAG_NAME"
+          echo "✅ 获取到的前端版本: $FRONTEND_TAG_NAME"
+          
           echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
           echo "FRONTEND_TAG_NAME=$FRONTEND_TAG_NAME" >> $GITHUB_ENV
 
@@ -67,7 +84,7 @@ jobs:
           # 清理临时文件
           rm -f openlist-source.tar.gz openlist-frontend.tar.gz
 
-      #更新 Makefile 中的相关字段
+      # 更新 Makefile 中的相关字段
       - name: Update Makefile
         if: steps.check_changes.outputs.changes == 'true'
         run: |
@@ -88,7 +105,7 @@ jobs:
           git commit -m "chore: Update upstream to ${UPSTREAM_VERSION}"
           git push origin HEAD
 
-      # 创建并推送标签
+      # 创建并推送标签 (这将触发编译脚本)
       - name: Create and Push Tag
         if: steps.check_changes.outputs.changes == 'true'
         run: |
